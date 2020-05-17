@@ -5,7 +5,6 @@
 
 /*#define WIFI_SSID "name"
 #define WIFI_PASS "pswd" 
-
 #define MQTT_S "1.1.1.1"
 #define MQTT_P 1883
 #define MQTT_U "user"
@@ -13,29 +12,27 @@
 
 #define DHTPIN 2 // номер пина, к которому подсоединен датчик
 
-// Раскомментируйте в соответствии с используемым датчиком
-
 // Инициируем датчик
 
-//DHT dht(DHTPIN, DHT22);
+//DHT dht(DHTPIN, DHT22); // если тип датчика DHT22
 
-DHT dht(DHTPIN, DHT11);
+DHT dht(DHTPIN, DHT11); // если тип датчика DHT22
+
 WiFiClient espClient;
 PubSubClient MqttClient(espClient);
 
-void setup() {
+void setup() { // различные установки
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   MqttClient.setServer(MQTT_S, MQTT_P);
 
-Serial.begin(9600);
+Serial.begin(9600); // инициализация COM
 
-dht.begin();
-
+dht.begin(); // инициализация опроса датчика
 }
 
 void loop() {
 
-// Задержка 2 секунды между измерениями
+// Задержка 1 секунды между измерениями
 
 delay(1000);
 
@@ -45,10 +42,7 @@ delay(1000);
 float t = dht.readTemperature();
 float h = dht.readHumidity();
 
-float* pt = &t;
-float* ph = &h;
-// Проверка удачно прошло ли считыванnие.
-
+// Проверка удачно прошло ли считыванnие
 if (isnan(t) || isnan(h)) {
 Serial.println("Не удается считать показания");
 return;
@@ -63,17 +57,25 @@ if (Serial.available() > 0) {  //если есть доступные данны
         Serial.println(incomingByte, DEC);
     }
 
-
-Serial.print(*pt); Serial.println(" C");
-Serial.print(*ph); Serial.println(" %");
+Serial.print(t); Serial.println(" C");
+Serial.print(h); Serial.println(" %");
 
 if(WiFi.status() == WL_CONNECTED)
   {
   Serial.println(WiFi.localIP());
   MqttClient.connect("ESPClientTwo", MQTT_U, MQTT_PASS); 
   char x[4] = {0,0,0,0};
+  
+  /* перевод значения float в массив символов
+  t- что переводим
+  4 - длина получаемого символьного значения
+  2 - количество символов после запятой
+  x - куда записываем преобразованные данные*/
   dtostrf(t,4,2,x);  
-  MqttClient.publish("sensor",x);
+  MqttClient.publish("sensor/temp",x); // отправка mqtt qos level 1
+  dtostrf(h,4,2,x);  
+  MqttClient.publish("sensor/hump",x); // отправка mqtt qos level 1
+  
   }
 
 }
